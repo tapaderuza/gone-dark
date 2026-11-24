@@ -19,7 +19,10 @@ Built on [Devvit Web](https://developers.reddit.com/) for Reddit's Game of the D
 - Once you finish, you can see **everyone's buoys** on the chart: a heatmap of how the subreddit searched that day.
 - A histogram shows how many buoys people needed, and where you stand.
 - **Post my result** adds a spoiler-free comment to the post (`🔈 🔉 🔊 🎯`), and only when you press it.
-- Streaks count the days in a row you find the ship.
+- Streaks count the days in a row you find the ship. Posting your result also sets your streak as user flair in the subreddit.
+- A **weekly leaderboard** for the subreddit (Redis sorted set): each ship found scores 7 minus the buoys used.
+- Every night the app comments a **recap** of yesterday's search on yesterday's post: how many searched, how many found it, and where the expert's buoys went.
+- A **Join** button subscribes you to the subreddit, so tomorrow's ship lands in your feed.
 
 ## Develop
 
