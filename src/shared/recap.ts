@@ -17,7 +17,9 @@ export const cellName = (cell: number, cols = 12): string =>
   `${String.fromCharCode(65 + (cell % cols))}${Math.floor(cell / cols) + 1}`;
 
 const bar = (n: number, max: number, width = 14): string =>
-  n === 0 ? '' : '█'.repeat(Math.max(1, Math.round((width * n) / Math.max(1, max))));
+  n === 0
+    ? ''
+    : '█'.repeat(Math.max(1, Math.round((width * n) / Math.max(1, max))));
 
 /**
  * The comment the app leaves on yesterday's post when today's ship goes dark:
@@ -34,11 +36,16 @@ export const recapText = (
 ): string | null => {
   if (s.players <= 0) return null;
   const rows = [
-    ...Array.from({ length: maxDrops },(_, i) => [String(i + 1), s.wins[i + 1] ?? 0] as const),
+    ...Array.from(
+      { length: maxDrops },
+      (_, i) => [String(i + 1), s.wins[i + 1] ?? 0] as const
+    ),
     ['✕', s.lost] as const,
   ];
   const max = Math.max(...rows.map(([, n]) => n));
-  const chart = rows.map(([label, n]) => `${label} ${bar(n, max)}${n ? ` ${n}` : ''}`.trimEnd());
+  const chart = rows.map(([label, n]) =>
+    `${label} ${bar(n, max)}${n ? ` ${n}` : ''}`.trimEnd()
+  );
   const found = `${s.won} found the ship`;
   const lines = [
     `**Search over: Gone Dark #${day} · ${regionName}**`,
@@ -49,7 +56,8 @@ export const recapText = (
     '',
     ...chart.map((l) => `    ${l}`),
   ];
-  if (s.bestStreak > 1) lines.push('', `Longest streak still alive: ${s.bestStreak} days.`);
+  if (s.bestStreak > 1)
+    lines.push('', `Longest streak still alive: ${s.bestStreak} days.`);
   lines.push('', "A new ship has gone dark. Today's post is up: good hunting.");
   return lines.join('\n');
 };
