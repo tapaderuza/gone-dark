@@ -1,0 +1,7 @@
+node_modules
+.DS_Store
+dist
+.env
+.geodata
+.work
+docs/PASOS.md
