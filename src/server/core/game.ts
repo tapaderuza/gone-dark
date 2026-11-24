@@ -35,6 +35,28 @@ const key = {
   heat: (day: number) => `gd:heat:${day}`,
   streak: (userId: string) => `gd:streak:${userId}`,
   joined: (userId: string) => `gd:joined:${userId}`,
+  /** Weekly points per player: week 1 = days 1-7. */
+  week: (week: number) => `gd:week:${week}`,
+  names: 'gd:names',
+};
+
+export const weekOf = (day: number): number => Math.floor((day - 1) / 7) + 1;
+/** A ship found with n buoys earns 7 - n points (6 for one buoy, 1 for six). */
+export const pointsFor = (buoys: number): number => Math.max(1, MAX_DROPS + 1 - buoys);
+
+const readLeaderboard = async (
+  day: number,
+  userId: string | undefined
+): Promise<GameState['leaderboard']> => {
+  const week = weekOf(day);
+  const rows = await redis.zRange(key.week(week), 0, 4, { by: 'rank', reverse: true });
+  const names = rows.length ? await redis.hMGet(key.names, rows.map((r) => r.member)) : [];
+  const mine = userId ? Number((await redis.zScore(key.week(week), userId)) ?? 0) : 0;
+  return {
+    week,
+    top: rows.map((r, i) => ({ name: names[i] ?? 'a searcher', points: r.score })),
+    mine,
+  };
 };
 
 type Play = { drops: Drop[]; status: Status; shared: boolean };
@@ -147,7 +169,10 @@ export const postRecap = async (day: number): Promise<string> => {
   const claimed = await redis.hSetNX('gd:recaps', String(day), 'pending');
   if (!claimed) return 'already posted';
   try {
-    const [puzzle, stats] = await Promise.all([puzzleFor(day), redis.hGetAll(key.stats(day))]);
+    const [puzzle, stats] = await Promise.all([
+      puzzleFor(day),
+      redis.hGetAll(key.stats(day)),
+    ]);
     const text = recapText(
       day,
       regionFor(day).name,
@@ -157,7 +182,9 @@ export const postRecap = async (day: number): Promise<string> => {
         players: Number(stats.players ?? 0),
         won: Number(stats.won ?? 0),
         lost: Number(stats.lost ?? 0),
-        wins: Array.from({ length: MAX_DROPS + 1 }, (_, n) => (n === 0 ? 0 : Number(stats[`w${n}`] ?? 0))),
+        wins: Array.from({ length: MAX_DROPS + 1 }, (_, n) =>
+          n === 0 ? 0 : Number(stats[`w${n}`] ?? 0)
+        ),
         bestStreak: Number(stats.beststreak ?? 0),
       },
       MAX_DROPS
@@ -166,7 +193,10 @@ export const postRecap = async (day: number): Promise<string> => {
       await redis.hSet('gd:recaps', { [String(day)]: 'quiet' });
       return 'nobody played';
     }
-    const comment = await reddit.submitComment({ id: postId as `t3_${string}`, text });
+    const comment = await reddit.submitComment({
+      id: postId as `t3_${string}`,
+      text,
+    });
     try {
       await comment.distinguish(true);
     } catch {
@@ -236,6 +266,7 @@ export const getState = async (day: number): Promise<GameState> => {
     shared: play.shared,
     subreddit: context.subredditName ?? '',
     joined: Boolean(joined),
+    leaderboard: finished ? await readLeaderboard(day, userId) : null,
     nextAt: nextShipAt(day),
   };
 };
@@ -320,7 +351,11 @@ export const dropBuoy = async (
     writes.push(
       redis.hIncrBy(key.stats(day), 'won', 1),
       redis.hIncrBy(key.stats(day), `w${play.drops.length}`, 1),
-      recordStreak(userId, day, true)
+      recordStreak(userId, day, true),
+      redis.zIncrBy(key.week(weekOf(day)), userId, pointsFor(play.drops.length)),
+      reddit
+        .getCurrentUsername()
+        .then((name) => (name ? redis.hSet(key.names, { [userId]: name }) : 0))
     );
   } else if (play.drops.length >= MAX_DROPS) {
     play.status = 'lost';

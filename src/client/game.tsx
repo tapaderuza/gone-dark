@@ -298,6 +298,24 @@ const Result = ({
           {showHeat ? 'Hide the crowd' : "Everyone's buoys"}
         </button>
       </div>
+      {gs.leaderboard && gs.leaderboard.top.length > 0 && (
+        <div className="mt-3 rounded-xl border border-white/10 px-3 py-2">
+          <div className="label flex justify-between">
+            <span>This week in r/{gs.subreddit}</span>
+            <span>you: {gs.leaderboard.mine} pts</span>
+          </div>
+          <ol className="mt-1 space-y-0.5 text-[13px]">
+            {gs.leaderboard.top.map((r, i) => (
+              <li key={r.name} className="flex justify-between">
+                <span className={r.name === gs.username ? 'text-amber' : ''}>
+                  {i + 1}. u/{r.name}
+                </span>
+                <span className="font-mono text-muted">{r.points}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
       {gs.streak.current > 0 && !gs.shared && (
         <p className="mt-1.5 text-center text-[11px] text-muted">
           Posting also shows your streak as flair in r/{gs.subreddit}.

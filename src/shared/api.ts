@@ -38,6 +38,8 @@ export type GameState = {
   subreddit: string;
   /** The player pressed "Join" here (we cannot read real membership). */
   joined: boolean;
+  /** This week's top searchers in this subreddit (points = 7 - buoys used, per ship found). Sent once finished. */
+  leaderboard: { week: number; top: { name: string; points: number }[]; mine: number } | null;
   /** ISO time when the next ship goes dark. */
   nextAt: string;
 };

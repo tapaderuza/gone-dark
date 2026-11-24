@@ -117,6 +117,17 @@ const state = (play: Play): GameState => {
     shared: play.shared,
     subreddit: 'GoneDarkDaily',
     joined: play.joined ?? false,
+    leaderboard: finished
+      ? {
+          week: Math.floor((day - 1) / 7) + 1,
+          top: [
+            { name: 'harbour_owl', points: 23 },
+            { name: 'local-tester', points: play.status === 'won' ? 7 - play.drops.length : 0 },
+            { name: 'sonar_sue', points: 5 },
+          ].sort((a, b) => b.points - a.points),
+          mine: play.status === 'won' ? 7 - play.drops.length : 0,
+        }
+      : null,
     nextAt: new Date(EPOCH_UTC + (day + 1) * 86400000 + 120000).toISOString(),
   };
 };
