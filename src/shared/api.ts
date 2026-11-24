@@ -34,6 +34,10 @@ export type GameState = {
   streak: { current: number; best: number };
   community: Community;
   shared: boolean;
+  /** The subreddit this post lives in, without "r/". */
+  subreddit: string;
+  /** The player pressed "Join" here (we cannot read real membership). */
+  joined: boolean;
   /** ISO time when the next ship goes dark. */
   nextAt: string;
 };

@@ -32,6 +32,7 @@ const key = {
   stats: (day: number) => `gd:stats:${day}`,
   heat: (day: number) => `gd:heat:${day}`,
   streak: (userId: string) => `gd:streak:${userId}`,
+  joined: (userId: string) => `gd:joined:${userId}`,
 };
 
 type Play = { drops: Drop[]; status: Status; shared: boolean };
@@ -156,11 +157,12 @@ const nextShipAt = (day: number): string =>
 
 export const getState = async (day: number): Promise<GameState> => {
   const userId = context.userId;
-  const [puzzle, play, streak, username] = await Promise.all([
+  const [puzzle, play, streak, username, joined] = await Promise.all([
     puzzleFor(day),
     readPlay(day, userId),
     readStreak(userId, day),
     userId ? reddit.getCurrentUsername() : Promise.resolve(undefined),
+    userId ? redis.get(key.joined(userId)) : Promise.resolve(undefined),
   ]);
   const region = regionFor(day);
   const finished = play.status !== 'playing';
@@ -182,8 +184,26 @@ export const getState = async (day: number): Promise<GameState> => {
     streak,
     community: await readCommunity(day, finished),
     shared: play.shared,
+    subreddit: context.subredditName ?? '',
+    joined: Boolean(joined),
     nextAt: nextShipAt(day),
   };
+};
+
+/** Flair text for a streak, e.g. "🔊 Sonar streak 4 · best 9". Reddit caps flair at 64 characters. */
+export const streakFlair = (current: number, best: number): string =>
+  `🔊 Sonar streak ${current} · best ${best}`;
+
+/** Subscribes the player to this subreddit so tomorrow's ship shows up in their feed. */
+export const joinSubreddit = async (
+  day: number
+): Promise<GameState | ApiError> => {
+  const userId = context.userId;
+  if (!userId)
+    return { type: 'error', code: 'login', message: 'Log in to join.' };
+  await reddit.subscribeToCurrentSubreddit();
+  await redis.set(key.joined(userId), '1');
+  return getState(day);
 };
 
 export const getSummary = async (day: number): Promise<Summary> => {
@@ -288,5 +308,24 @@ export const shareResult = async (
   await reddit.submitComment({ id: postId, text, runAs: 'USER' });
   play.shared = true;
   await redis.set(key.play(day, userId), JSON.stringify(play));
+  // The streak shows next to the player's name in this subreddit. Best effort:
+  // a failure here must not undo the comment that was just posted.
+  try {
+    const [username, streak] = await Promise.all([
+      reddit.getCurrentUsername(),
+      readStreak(userId, day),
+    ]);
+    if (username && context.subredditName && streak.current > 0) {
+      await reddit.setUserFlair({
+        subredditName: context.subredditName,
+        username,
+        text: streakFlair(streak.current, streak.best),
+        backgroundColor: '#ffb547',
+        textColor: 'dark',
+      });
+    }
+  } catch (error) {
+    console.error('Gone Dark: could not set streak flair', error);
+  }
   return getState(day);
 };

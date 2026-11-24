@@ -24,7 +24,12 @@ const region = regionForDay(regions, day);
 const puzzle = makePuzzle(region, day);
 const KEY = `gd-local:${day}`;
 
-type Play = { drops: Drop[]; status: Status; shared: boolean };
+type Play = {
+  drops: Drop[];
+  status: Status;
+  shared: boolean;
+  joined?: boolean;
+};
 
 const read = (): Play => {
   try {
@@ -110,6 +115,8 @@ const state = (play: Play): GameState => {
       heat: finished ? crowd.heat : null,
     },
     shared: play.shared,
+    subreddit: 'GoneDarkDaily',
+    joined: play.joined ?? false,
     nextAt: new Date(EPOCH_UTC + (day + 1) * 86400000 + 120000).toISOString(),
   };
 };
@@ -144,6 +151,13 @@ export const mockDrop = async (cell: number): Promise<GameState> => {
     write(play);
   }
   await new Promise((r) => setTimeout(r, 250));
+  return state(play);
+};
+
+export const mockJoin = async (): Promise<GameState> => {
+  const play = read();
+  play.joined = true;
+  write(play);
   return state(play);
 };
 

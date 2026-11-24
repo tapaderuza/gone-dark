@@ -47,6 +47,11 @@ export const shareResult = async (): Promise<GameState | ApiError> =>
     ? (await import('./mock')).mockShare()
     : send<GameState>('/api/share', post());
 
+export const joinSubreddit = async (): Promise<GameState | ApiError> =>
+  LOCAL
+    ? (await import('./mock')).mockJoin()
+    : send<GameState>('/api/join', post());
+
 export const openGame = (event: MouseEvent): void => {
   if (LOCAL) window.location.href = `game.html${window.location.search}`;
   else requestExpandedMode(event, 'game');

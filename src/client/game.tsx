@@ -14,7 +14,15 @@ import {
   type Band,
   type Drop,
 } from '../shared/engine';
-import { askLogin, dropAt, isError, loadState, shareResult } from './api';
+import {
+  askLogin,
+  dropAt,
+  isError,
+  joinSubreddit,
+  loadState,
+  shareResult,
+  toast,
+} from './api';
 import { BAND_COLORS, Chart, cellLabel } from './chart';
 
 const INTRO_KEY = 'gd:intro-seen';
@@ -190,12 +198,16 @@ const Result = ({
   onToggleHeat,
   onShare,
   sharing,
+  onJoin,
+  joining,
 }: {
   gs: GameState;
   showHeat: boolean;
   onToggleHeat: () => void;
   onShare: () => void;
   sharing: boolean;
+  onJoin: () => void;
+  joining: boolean;
 }) => {
   const won = gs.status === 'won';
   const n = gs.drops.length;
@@ -286,6 +298,24 @@ const Result = ({
           {showHeat ? 'Hide the crowd' : "Everyone's buoys"}
         </button>
       </div>
+      {gs.streak.current > 0 && !gs.shared && (
+        <p className="mt-1.5 text-center text-[11px] text-muted">
+          Posting also shows your streak as flair in r/{gs.subreddit}.
+        </p>
+      )}
+      {gs.subreddit && (
+        <button
+          onClick={onJoin}
+          disabled={gs.joined || joining}
+          className="mt-2 h-10 w-full rounded-xl border border-amber/60 text-[14px] font-semibold text-amber disabled:border-white/10 disabled:text-muted"
+        >
+          {gs.joined
+            ? `Joined r/${gs.subreddit} · tomorrow's ship lands in your feed`
+            : joining
+              ? 'Joining…'
+              : `Join r/${gs.subreddit} for tomorrow's ship`}
+        </button>
+      )}
       <p className="mt-2 text-center text-[12px] text-muted">
         Next ship goes dark in{' '}
         <span className="font-mono text-text">{countdown}</span>
@@ -300,6 +330,7 @@ export const App = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [help, setHelp] = useState<'intro' | 'help' | null>(() =>
     introSeen() ? null : 'intro'
@@ -400,6 +431,19 @@ export const App = () => {
     setSharing(false);
     if (isError(r)) setNotice(r.message);
     else setGs(r);
+  };
+
+  const onJoin = async () => {
+    setJoining(true);
+    const r = await joinSubreddit();
+    setJoining(false);
+    if (isError(r)) {
+      if (r.code === 'login') askLogin();
+      else toast(r.message);
+    } else {
+      setGs(r);
+      toast(`Joined r/${r.subreddit}`);
+    }
   };
 
   const last = gs.drops.at(-1);
@@ -514,6 +558,8 @@ export const App = () => {
           onToggleHeat={() => setShowHeat((v) => !v)}
           onShare={() => void onShare()}
           sharing={sharing}
+          onJoin={() => void onJoin()}
+          joining={joining}
         />
       )}
 

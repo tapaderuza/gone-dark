@@ -5,6 +5,7 @@ import {
   dropBuoy,
   getState,
   getSummary,
+  joinSubreddit,
   shareResult,
 } from '../core/game';
 
@@ -41,6 +42,15 @@ api.post('/drop', async (c) => {
   try {
     const body = await c.req.json<DropRequest>();
     const result = await dropBuoy(await dayForPost(), body.cell);
+    return c.json(result, statusFor(result));
+  } catch (error) {
+    return c.json(fail(error), 500);
+  }
+});
+
+api.post('/join', async (c) => {
+  try {
+    const result = await joinSubreddit(await dayForPost());
     return c.json(result, statusFor(result));
   } catch (error) {
     return c.json(fail(error), 500);
