@@ -7,7 +7,9 @@ import type {
   Status,
   Summary,
 } from '../../shared/api';
+import { cellName, recapText } from '../../shared/recap';
 import {
+  COLS,
   EPOCH_UTC,
   MAX_DROPS,
   bandFor,
@@ -128,6 +130,54 @@ const recordStreak = async (
     current: String(current),
     best: String(best),
   });
+  // The longest streak alive among today's players, for tomorrow's recap (a rare race only under-counts).
+  const dayBest = Number((await redis.hGet(key.stats(day), 'beststreak')) ?? 0);
+  if (current > dayBest)
+    await redis.hSet(key.stats(day), { beststreak: String(current) });
+};
+
+/**
+ * When a new ship goes dark, the app comments on yesterday's post with how the community did.
+ * Posts once per day (gd:recaps), stays quiet if nobody played, never throws.
+ */
+export const postRecap = async (day: number): Promise<string> => {
+  if (day < 1) return 'no previous day';
+  const postId = await redis.hGet(key.posts, String(day));
+  if (!postId || postId === 'pending') return 'no post for that day';
+  const claimed = await redis.hSetNX('gd:recaps', String(day), 'pending');
+  if (!claimed) return 'already posted';
+  try {
+    const [puzzle, stats] = await Promise.all([puzzleFor(day), redis.hGetAll(key.stats(day))]);
+    const text = recapText(
+      day,
+      regionFor(day).name,
+      cellName(puzzle.ship, COLS),
+      puzzle.par,
+      {
+        players: Number(stats.players ?? 0),
+        won: Number(stats.won ?? 0),
+        lost: Number(stats.lost ?? 0),
+        wins: Array.from({ length: MAX_DROPS + 1 }, (_, n) => (n === 0 ? 0 : Number(stats[`w${n}`] ?? 0))),
+        bestStreak: Number(stats.beststreak ?? 0),
+      },
+      MAX_DROPS
+    );
+    if (!text) {
+      await redis.hSet('gd:recaps', { [String(day)]: 'quiet' });
+      return 'nobody played';
+    }
+    const comment = await reddit.submitComment({ id: postId as `t3_${string}`, text });
+    try {
+      await comment.distinguish(true);
+    } catch {
+      /* distinguishing is a nicety */
+    }
+    await redis.hSet('gd:recaps', { [String(day)]: comment.id });
+    return `recap ${comment.id}`;
+  } catch (error) {
+    await redis.hDel('gd:recaps', [String(day)]);
+    throw error;
+  }
 };
 
 const readCommunity = async (
