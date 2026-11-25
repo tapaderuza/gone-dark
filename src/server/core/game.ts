@@ -42,19 +42,33 @@ const key = {
 
 export const weekOf = (day: number): number => Math.floor((day - 1) / 7) + 1;
 /** A ship found with n buoys earns 7 - n points (6 for one buoy, 1 for six). */
-export const pointsFor = (buoys: number): number => Math.max(1, MAX_DROPS + 1 - buoys);
+export const pointsFor = (buoys: number): number =>
+  Math.max(1, MAX_DROPS + 1 - buoys);
 
 const readLeaderboard = async (
   day: number,
   userId: string | undefined
 ): Promise<GameState['leaderboard']> => {
   const week = weekOf(day);
-  const rows = await redis.zRange(key.week(week), 0, 4, { by: 'rank', reverse: true });
-  const names = rows.length ? await redis.hMGet(key.names, rows.map((r) => r.member)) : [];
-  const mine = userId ? Number((await redis.zScore(key.week(week), userId)) ?? 0) : 0;
+  const rows = await redis.zRange(key.week(week), 0, 4, {
+    by: 'rank',
+    reverse: true,
+  });
+  const names = rows.length
+    ? await redis.hMGet(
+        key.names,
+        rows.map((r) => r.member)
+      )
+    : [];
+  const mine = userId
+    ? Number((await redis.zScore(key.week(week), userId)) ?? 0)
+    : 0;
   return {
     week,
-    top: rows.map((r, i) => ({ name: names[i] ?? 'a searcher', points: r.score })),
+    top: rows.map((r, i) => ({
+      name: names[i] ?? 'a searcher',
+      points: r.score,
+    })),
     mine,
   };
 };
@@ -352,7 +366,11 @@ export const dropBuoy = async (
       redis.hIncrBy(key.stats(day), 'won', 1),
       redis.hIncrBy(key.stats(day), `w${play.drops.length}`, 1),
       recordStreak(userId, day, true),
-      redis.zIncrBy(key.week(weekOf(day)), userId, pointsFor(play.drops.length)),
+      redis.zIncrBy(
+        key.week(weekOf(day)),
+        userId,
+        pointsFor(play.drops.length)
+      ),
       reddit
         .getCurrentUsername()
         .then((name) => (name ? redis.hSet(key.names, { [userId]: name }) : 0))

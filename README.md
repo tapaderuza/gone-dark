@@ -6,6 +6,21 @@ Each buoy hears the ship's engine as **Loud**, **Clear**, **Faint** or **Silent*
 
 Built on [Devvit Web](https://developers.reddit.com/) for Reddit's Game of the Day Hackathon (2026).
 
+Play it: [r/GoneDarkDaily](https://www.reddit.com/r/GoneDarkDaily/)
+
+## How to play
+
+1. Open today's post (`Gone Dark #N · <place>`) and press **Start the search**.
+2. The lit water on the chart is everywhere the ship could have reached since it went dark.
+3. Tap a lit square, then **Drop buoy**. The buoy reports what it hears:
+   - **Contact**: the ship is right there. You found it.
+   - **Loud**, **Clear** or **Faint**: the ship is near, middling or far (the distances in km are shown for that map).
+   - **Silent**: the ship is far away, or an island blocks the sound.
+4. Squares that no longer fit every reading go dark. Use the six buoys to narrow it down to one square and drop on it.
+5. When you finish, see where everyone else dropped their buoys, how many buoys people needed, and this week's leaderboard. **Post my result** adds a spoiler-free comment and shows your streak as flair.
+
+A new ship goes dark every day at 00:02 UTC. Every puzzle can be solved in five buoys or fewer.
+
 ## How a day works
 
 - At 00:02 UTC the app posts that day's search to the subreddit, as `Gone Dark #N · <place>`. Moderators can also post it from the subreddit menu.
