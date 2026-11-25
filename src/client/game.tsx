@@ -350,9 +350,9 @@ export const App = () => {
   const [sharing, setSharing] = useState(false);
   const [joining, setJoining] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [help, setHelp] = useState<'intro' | 'help' | null>(() =>
-    introSeen() ? null : 'intro'
-  );
+  // First visit: no rules sheet up front. A short hint on the chart teaches by doing, for the first two buoys.
+  const [help, setHelp] = useState<'intro' | 'help' | null>(null);
+  const [coach, setCoach] = useState(() => !introSeen());
   const [showHeat, setShowHeat] = useState(false);
 
   const [attempt, setAttempt] = useState(0);
@@ -441,6 +441,10 @@ export const App = () => {
     setSelected(null);
     setNotice(null);
     setGs(r);
+    if (coach && (r.drops.length >= 2 || r.status !== 'playing')) {
+      markIntroSeen();
+      setCoach(false);
+    }
   };
 
   const onShare = async () => {
@@ -508,7 +512,26 @@ export const App = () => {
         </button>
       </header>
 
-      <main className="min-h-0 flex-1 px-3 py-2">
+      <main className="relative min-h-0 flex-1 px-3 py-2">
+        {coach && playing && (
+          <p
+            aria-live="polite"
+            className="pointer-events-none absolute inset-x-6 bottom-4 z-10 rounded-xl border border-amber/40 bg-ink/90 px-3 py-2 text-center text-[13px] leading-snug text-text shadow-lg"
+          >
+            {gs.drops.length === 0 ? (
+              <>
+                The ship is somewhere in the <b>lit blue water</b>. Tap a
+                square, then drop a sonar buoy.
+              </>
+            ) : (
+              <>
+                The ring is how far your buoy heard the engine. Squares that no
+                longer fit are hatched out.{' '}
+                <b className="text-amber">Land blocks sound.</b>
+              </>
+            )}
+          </p>
+        )}
         <Chart
           label={`Chart of ${gs.region.name}. Arrow keys move the marker, Enter drops a buoy.`}
           mask={gs.region.mask}
