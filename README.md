@@ -6,7 +6,7 @@ Each buoy hears the ship's engine as **Loud**, **Clear**, **Faint** or **Silent*
 
 Built on [Devvit Web](https://developers.reddit.com/) for Reddit's Game of the Day Hackathon (2026).
 
-Play it: [r/GoneDarkDaily](https://www.reddit.com/r/GoneDarkDaily/)
+App page: [developers.reddit.com/apps/gone-dark-daily](https://developers.reddit.com/apps/gone-dark-daily)
 
 ## How to play
 
